@@ -298,6 +298,9 @@ def list_files():
     if file_type:
         query = query.eq("type", file_type)
 
+    if not is_admin(user):
+        query = query.or_(f"uploaded_by.eq.{user.user.id},is_general.eq.true")
+
     query = query.order(sort, desc=(order == "desc"))
     query = query.range((page - 1) * per_page, page * per_page - 1)
 
@@ -340,6 +343,7 @@ def upload_file():
         "uploaded_by": user.user.id,
         "description": description,
         "checksum": checksum,
+        "is_general": request.form.get("is_general", "false").lower() in ("1", "true", "yes", "on"),
     }
 
     try:
@@ -373,7 +377,7 @@ def download_file(file_id):
     if not file_record.data:
         return jsonify({"error": "File not found"}), 404
 
-    if file_record.data["uploaded_by"] != user.user.id and not is_admin(user):
+    if file_record.data["uploaded_by"] != user.user.id and not file_record.data.get("is_general") and not is_admin(user):
         return jsonify({"error": "Forbidden"}), 403
 
     signed_url = service_supabase.storage.from_(Config.STORAGE_BUCKET).create_signed_url(
@@ -409,6 +413,26 @@ def delete_file(file_id):
     ).execute()
 
     return jsonify({"message": "File deleted"})
+
+
+@app.route("/api/files/<file_id>/general", methods=["PUT"])
+def set_general(file_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    is_general = bool(data.get("is_general"))
+
+    file_record = service_supabase.table("files").select("*").eq("id", file_id).maybe_single().execute()
+    if not file_record.data:
+        return jsonify({"error": "File not found"}), 404
+
+    if file_record.data["uploaded_by"] != user.user.id and not is_admin(user):
+        return jsonify({"error": "Forbidden"}), 403
+
+    service_supabase.table("files").update({"is_general": is_general}).eq("id", file_id).execute()
+    return jsonify({"message": "File updated", "is_general": is_general})
 
 
 @app.route("/api/files/search", methods=["GET"])
@@ -466,10 +490,10 @@ def search_files_fallback(query, user):
         or_clauses.append("category_id.in.({})".format(",".join(matched_cat_ids)))
 
     query_builder = service_supabase.table("files").select(
-        "id, name, type, size, description, category_id, uploaded_by, created_at"
+        "id, name, type, size, description, category_id, uploaded_by, is_general, created_at"
     ).is_("deleted_at", "null").or_(",".join(or_clauses))
     if not is_admin(user):
-        query_builder = query_builder.eq("uploaded_by", user.user.id)
+        query_builder = query_builder.or_(f"uploaded_by.eq.{user.user.id},is_general.eq.true")
     rows = query_builder.order("created_at", desc=True).limit(100).execute().data
 
     cat_map = {c["id"]: c["name"] for c in cats}
@@ -481,7 +505,9 @@ def search_files_fallback(query, user):
         "type": r["type"],
         "category_name": cat_map.get(r["category_id"]),
         "size": r["size"],
+        "uploaded_by": r["uploaded_by"],
         "uploaded_by_name": prof_map.get(r["uploaded_by"]),
+        "is_general": r.get("is_general", False),
         "created_at": r["created_at"],
     } for r in rows]
 

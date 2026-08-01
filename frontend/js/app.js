@@ -277,6 +277,7 @@ async function loadDashboard() {
 
 // ─── Files ──────────────────────────────────────────────────
 let searchTimeout;
+let currentFiles = [];
 
 $('search-input').addEventListener('input', () => {
     clearTimeout(searchTimeout);
@@ -308,26 +309,74 @@ async function loadFiles() {
         return;
     }
 
+    currentFiles = data || [];
+    renderFiles(currentFiles);
+}
+
+function renderFiles(files) {
     const container = $('files-container');
-    if (!data || data.length === 0) {
+    const me = (state.profile && state.profile.id) || '';
+    const isAdmin = (state.profile.role || 'staff') === 'admin';
+
+    if (!files.length) {
         container.innerHTML = '<div class="empty-state">No files found</div>';
         return;
     }
 
-    container.innerHTML = data.map((f) => `
+    if (isAdmin) {
+        container.innerHTML = files.map((f) => fileCard(f, me)).join('');
+        return;
+    }
+
+    const mine = files.filter((f) => f.uploaded_by === me);
+    const general = files.filter((f) => f.is_general && f.uploaded_by !== me);
+
+    let html = `<h3 class="files-section-title">My Files <span class="files-section-count">${mine.length}</span></h3>`;
+    html += mine.length
+        ? mine.map((f) => fileCard(f, me)).join('')
+        : '<div class="empty-state">You have no files yet</div>';
+    html += `<h3 class="files-section-title">General Files <span class="files-section-count">${general.length}</span></h3>`;
+    html += general.length
+        ? general.map((f) => fileCard(f, me)).join('')
+        : '<div class="empty-state">No general files shared yet</div>';
+    container.innerHTML = html;
+}
+
+function fileCard(f, me) {
+    const isAdmin = (state.profile.role || 'staff') === 'admin';
+    const canModify = isAdmin || f.uploaded_by === me;
+    const uploadedByName = f.uploaded_by_name || (f.profiles && f.profiles.full_name) || '';
+    const badge = f.is_general ? ' <span class="badge-general">General</span>' : '';
+    const actions = `
+        <button class="btn btn-sm btn-outline" onclick="downloadFile('${f.id}')">Download</button>
+        ${canModify ? `
+            <button class="btn btn-sm btn-outline" onclick="toggleGeneral('${f.id}')">${f.is_general ? 'Unshare' : 'Share'}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteFile('${f.id}')">Delete</button>` : ''}`;
+    return `
         <div class="file-card">
             <div class="file-info">
-                <span class="file-name">${escapeHtml(f.name)}</span>
+                <span class="file-name">${escapeHtml(f.name)}${badge}</span>
                 <span class="file-meta">
-                    ${escapeHtml(f.type)} &middot; ${formatBytes(f.size)} &middot; ${new Date(f.created_at).toLocaleDateString()}
+                    ${escapeHtml(f.type)} &middot; ${formatBytes(f.size)} &middot; ${new Date(f.created_at).toLocaleDateString()}${uploadedByName ? ' &middot; by ' + escapeHtml(uploadedByName) : ''}
                 </span>
             </div>
-            <div class="file-actions">
-                <button class="btn btn-sm btn-outline" onclick="downloadFile('${f.id}')">Download</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteFile('${f.id}')">Delete</button>
-            </div>
-        </div>
-    `).join('');
+            <div class="file-actions">${actions}</div>
+        </div>`;
+}
+
+async function toggleGeneral(id) {
+    const f = currentFiles.find((x) => x.id === id);
+    if (!f) return;
+    const target = !f.is_general;
+    try {
+        await apiFetch(`/files/${id}/general`, {
+            method: 'PUT',
+            body: JSON.stringify({ is_general: target }),
+        });
+        loadFiles();
+    } catch (err) {
+        showAlert({ title: 'Update failed', message: err.message });
+    }
 }
 
 // ─── Themed modal (replaces alert/confirm) ─────────────────
@@ -476,6 +525,7 @@ $('upload-form').addEventListener('submit', async (e) => {
     formData.append('file', file);
     formData.append('category_id', $('upload-category').value);
     formData.append('description', $('upload-description').value);
+    formData.append('is_general', $('upload-general').checked ? 'true' : 'false');
 
     const btn = e.target.querySelector('.btn-primary');
     btn.disabled = true;
@@ -494,6 +544,7 @@ $('upload-form').addEventListener('submit', async (e) => {
         $('file-input').value = '';
         $('drop-zone').querySelector('p').innerHTML = 'Drag & drop a file here or <span>browse</span>';
         $('upload-description').value = '';
+        $('upload-general').checked = false;
         if (data.is_duplicate) {
             status.textContent += ' (duplicate detected)';
             status.style.color = '#D97706';

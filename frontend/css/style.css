@@ -695,6 +695,65 @@ body {
     flex-shrink: 0;
 }
 
+.files-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    margin: 22px 0 2px;
+}
+
+.files-section-title:first-child {
+    margin-top: 4px;
+}
+
+.files-section-count {
+    background: var(--border-light);
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+.badge-general {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #059669;
+    background: rgba(5, 150, 105, 0.12);
+    border: 1px solid rgba(5, 150, 105, 0.3);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    margin: 4px 0 16px;
+    cursor: pointer;
+}
+
+.checkbox-label input {
+    margin-top: 2px;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary, #3B82F6);
+}
+
+.checkbox-label em {
+    color: var(--text-muted);
+    font-style: normal;
+    font-size: 12px;
+}
+
 /* ─── UPLOAD ──────────────────────────── */
 
 .upload-form {
