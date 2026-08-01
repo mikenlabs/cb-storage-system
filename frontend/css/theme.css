@@ -1,0 +1,197 @@
+/* ══════════════════════════════════════════════════════════════
+   CB Storage System — Shared Design Tokens (single source of truth)
+   Used by the app (index.html / style.css) AND the landing page
+   (landing.html / landing.css). Light is the default; dark is
+   applied when <html data-theme="dark">.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── LIGHT THEME (default) ─────────────────────────────────── */
+:root {
+    color-scheme: light;
+    accent-color: var(--secondary);
+
+    /* Brand & surfaces */
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --text: #1E293B;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --muted: #E9EEF5;
+    --card-bg: #FFFFFF;
+    --sidebar-bg: #FFFFFF;
+    --hover-bg: #F1F5F9;
+
+    /* Borders */
+    --border: #BFDBFE;
+    --border-light: #E2E8F0;
+
+    /* Brand blue */
+    --primary: #1E3A8A;
+    --primary-hover: #1E40AF;
+    --primary-bright: #2563EB;
+    --on-primary: #FFFFFF;
+    --secondary: #3B82F6;
+    --secondary-light: #DBEAFE;
+    --ring: #3B82F6;
+
+    /* Purple accent */
+    --accent: #7C3AED;
+    --accent-light: #EDE9FE;
+
+    /* Green (success / security) */
+    --success: #059669;
+    --success-bright: #10B981;
+    --success-light: #D1FAE5;
+
+    /* Status */
+    --danger: #DC2626;
+    --danger-light: #FEE2E2;
+    --warning: #D97706;
+    --warning-light: #FEF3C7;
+
+    /* Glass & nav */
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-bg-hover: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(15, 23, 42, 0.08);
+    --glass-strong-bg: rgba(255, 255, 255, 0.9);
+    --nav-bg: rgba(248, 250, 252, 0.8);
+    --nav-bg-solid: #FFFFFF;
+    --page-gradient: linear-gradient(135deg, #EFF6FF 0%, #F8FAFC 50%, #F0F5FF 100%);
+
+    /* Landing decorations */
+    --glow-1: #BFDBFE;
+    --glow-2: rgba(16, 185, 129, 0.20);
+    --badge-bg: rgba(5, 150, 105, 0.10);
+    --badge-border: rgba(5, 150, 105, 0.30);
+    --btn-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    --cta-bg-opacity: 0.22;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.07);
+    --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.08);
+    --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.14);
+
+    /* Layout & motion (theme-independent) */
+    --sidebar-width: 260px;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --radius-lg: 14px;
+    --transition: 150ms ease;
+
+    /* Aliases kept for landing.css (--color-*) */
+    --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-bright: var(--primary-bright);
+    --color-on-primary: var(--on-primary);
+    --color-secondary: var(--secondary);
+    --color-accent: var(--success);
+    --color-accent-bright: var(--success-bright);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-text: var(--text);
+    --color-text-muted: var(--text-secondary);
+    --color-muted: var(--muted);
+    --color-border: var(--border-light);
+    --color-glass: var(--glass-bg);
+    --color-destructive: var(--danger);
+    --color-ring: var(--ring);
+}
+
+/* ─── DARK THEME ────────────────────────────────────────────── */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --background: #0F172A;
+    --foreground: #F8FAFC;
+    --text: #E2E8F0;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --muted: #10192E;
+    --card-bg: #1E293B;
+    --sidebar-bg: #10192E;
+    --hover-bg: #24324C;
+
+    --border: rgba(59, 130, 246, 0.28);
+    --border-light: rgba(255, 255, 255, 0.10);
+
+    --primary: #3B82F6;
+    --primary-hover: #60A5FA;
+    --primary-bright: #60A5FA;
+    --on-primary: #FFFFFF;
+    --secondary: #60A5FA;
+    --secondary-light: rgba(59, 130, 246, 0.16);
+    --ring: #60A5FA;
+
+    --accent: #A78BFA;
+    --accent-light: rgba(124, 58, 237, 0.18);
+
+    --success: #10B981;
+    --success-bright: #34D399;
+    --success-light: rgba(16, 185, 129, 0.16);
+
+    --danger: #F87171;
+    --danger-light: rgba(248, 113, 113, 0.16);
+    --warning: #FBBF24;
+    --warning-light: rgba(245, 158, 11, 0.18);
+
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-hover: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-strong-bg: rgba(16, 25, 46, 0.85);
+    --nav-bg: rgba(15, 23, 42, 0.72);
+    --nav-bg-solid: rgba(15, 23, 42, 0.98);
+    --page-gradient: linear-gradient(135deg, #0F172A 0%, #10192E 50%, #0F1B33 100%);
+
+    --glow-1: #1E3A8A;
+    --glow-2: rgba(5, 150, 105, 0.35);
+    --badge-bg: rgba(5, 150, 105, 0.12);
+    --badge-border: rgba(52, 211, 153, 0.3);
+    --btn-shadow: 0 8px 20px rgba(59, 130, 246, 0.30);
+    --cta-bg-opacity: 0.35;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.25);
+    --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Consistent selection + focus across themes */
+::selection {
+    background: var(--secondary-light);
+    color: var(--text);
+}
+
+*:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+
+/* ─── THEME TOGGLE BUTTON (shared look) ─────────────────────── */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--glass-bg);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.theme-toggle:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+
+/* Show the moon icon in light mode, the sun icon in dark mode.
+   Buttons should contain BOTH icons (order: .icon-moon then .icon-sun). */
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
