@@ -20,6 +20,9 @@ CREATE POLICY "Users can view general files"
 
 -- Rebuild search_files: include general files for all users, and expose
 -- uploaded_by + is_general so the UI can split My/General sections.
+-- DROP first: CREATE OR REPLACE cannot change a function's return type.
+DROP FUNCTION IF EXISTS public.search_files(TEXT, UUID);
+
 CREATE OR REPLACE FUNCTION public.search_files(search_query TEXT, requesting_user UUID)
 RETURNS TABLE (
     id UUID,
