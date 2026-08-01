@@ -425,10 +425,65 @@ def search_files():
         result = service_supabase.rpc(
             "search_files", {"search_query": query, "requesting_user": user.user.id}
         ).execute()
+        return jsonify(result.data)
     except Exception as e:
-        print(f"[SEARCH RPC ERROR] {e}")
-        return jsonify({"error": "Search service unavailable"}), 500
-    return jsonify(result.data)
+        print(f"[SEARCH RPC ERROR] {e} — using PostgREST fallback")
+        try:
+            return jsonify(search_files_fallback(query, user)), 200
+        except Exception as e2:
+            print(f"[SEARCH FALLBACK ERROR] {e2}")
+            return jsonify({"error": "Search service unavailable"}), 500
+
+
+def search_files_fallback(query, user):
+    """PostgREST-based search used when the search_files RPC is unavailable
+    (e.g. the DB function is stale/broken). Mirrors the RPC result shape."""
+    q = query.strip().lower()
+
+    matched_cat_ids = []
+    try:
+        cats = service_supabase.table("file_categories").select("id, name").execute().data
+        for c in cats:
+            if q in c["name"].lower():
+                matched_cat_ids.append(c["id"])
+    except Exception:
+        cats = []
+    try:
+        kws = service_supabase.table("category_keywords").select("category_id, keyword").execute().data
+        for k in kws:
+            if (k.get("keyword") or "").lower() and q in k["keyword"].lower():
+                matched_cat_ids.append(k["category_id"])
+    except Exception:
+        pass
+    matched_cat_ids = list(dict.fromkeys(matched_cat_ids))
+
+    or_clauses = [
+        "name.ilike.%{}%".format(q),
+        "type.ilike.%{}%".format(q),
+        "description.ilike.%{}%".format(q),
+    ]
+    if matched_cat_ids:
+        or_clauses.append("category_id.in.({})".format(",".join(matched_cat_ids)))
+
+    query_builder = service_supabase.table("files").select(
+        "id, name, type, size, description, category_id, uploaded_by, created_at"
+    ).is_("deleted_at", "null").or_(",".join(or_clauses))
+    if not is_admin(user):
+        query_builder = query_builder.eq("uploaded_by", user.user.id)
+    rows = query_builder.order("created_at", desc=True).limit(100).execute().data
+
+    cat_map = {c["id"]: c["name"] for c in cats}
+    profs = service_supabase.table("profiles").select("id, full_name").execute().data
+    prof_map = {p["id"]: p["full_name"] for p in profs}
+    return [{
+        "id": r["id"],
+        "name": r["name"],
+        "type": r["type"],
+        "category_name": cat_map.get(r["category_id"]),
+        "size": r["size"],
+        "uploaded_by_name": prof_map.get(r["uploaded_by"]),
+        "created_at": r["created_at"],
+    } for r in rows]
 
 # ─── BACKUP ───────────────────────────────────────────────────
 
