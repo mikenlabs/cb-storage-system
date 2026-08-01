@@ -832,46 +832,20 @@ def save_schedule_settings(settings):
 
 
 def reschedule_jobs(settings):
-    """Apply the given settings to the running scheduler (replace any job)."""
-    try:
-        scheduler.remove_job("scheduled_backup")
-    except Exception:
-        pass
-
-    mode = settings.get("mode")
-    if mode == "disabled":
-        print("[SCHEDULER] Automated backup disabled")
-        return
-
-    if mode == "interval":
-        minutes = settings.get("interval_minutes", 30)
-        scheduler.add_job(
-            scheduled_backup_job,
-            trigger="interval",
-            minutes=minutes,
-            id="scheduled_backup",
-            replace_existing=True,
-        )
-        print(f"[SCHEDULER] Automated backup every {minutes} minute(s)")
-    else:
-        hour = settings.get("hour", 2)
-        minute = settings.get("minute", 0)
-        scheduler.add_job(
-            scheduled_backup_job,
-            trigger="cron",
-            hour=hour,
-            minute=minute,
-            id="scheduled_backup",
-            replace_existing=True,
-        )
-        print(f"[SCHEDULER] Automated backup daily at {hour:02d}:{minute:02d} UTC")
+    """Hosted build: automated backups run inside Supabase (pg_cron), which
+    re-reads system_settings every minute — nothing to reschedule here."""
+    print("[SCHEDULER] Schedule handled by Supabase pg_cron (mode=%s)" % settings.get("mode"))
 
 
 def start_scheduler():
-    """Start the background scheduler and apply the persisted schedule."""
-    scheduler.start()
-    reschedule_jobs(get_schedule_settings())
-    return scheduler
+    """Hosted build: make sure the Supabase pg_cron job exists. The web
+    server can sleep (Render free tier) without stopping backups."""
+    try:
+        service_supabase.rpc("ensure_backup_cron").execute()
+        print("[BACKUP] Supabase pg_cron job ensured")
+    except Exception as e:
+        print(f"[BACKUP] Could not ensure pg_cron job: {e}")
+    return None
 
 
 # ─── FRONTEND (serve the SPA from the backend) ────────────────

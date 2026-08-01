@@ -15,7 +15,7 @@ cb hosted/
 │   ├── supabase_client.py
 │   └── seed_admin.py   # Creates the default admin account
 ├── frontend/           # Landing page + SPA (css/js/images)
-├── supabase/migrations/  # All SQL migrations 001–010 + fixes
+├── supabase/migrations/  # All SQL migrations 001–011 + fixes
 ├── Procfile            # gunicorn start command (single worker!)
 ├── runtime.txt         # Python version for Render
 ├── .env.example        # Environment variable template
@@ -26,9 +26,11 @@ cb hosted/
 
 1. Create a free project at https://supabase.com.
 2. In the **SQL Editor**, run every file in `supabase/migrations/` in order
-   (`001_initial_schema.sql` → `010_archive_excel_keywords.sql`, then
+   (`001_initial_schema.sql` → `011_pg_cron_automated_backup.sql`, then
    `fix_functions.sql`). This creates the tables, RLS policies, the storage
-   bucket and the auto-categorization trigger.
+   bucket, the auto-categorization trigger **and the pg_cron automated
+   backup job**. `011` also enables the `pg_cron` extension (you can enable
+   it manually under Database → Extensions if your project requires it).
 3. Create an admin user under **Authentication → Users** with the email and
    password you want (e.g. `admin@silas.com`), then set its role:
 
@@ -57,16 +59,21 @@ python seed_admin.py
 Same pattern: link the repo, set the build/start commands above, and add the
 three `SUPABASE_*` env vars.
 
-## Important: backup scheduler
+## Automated backups (Supabase pg_cron)
 
-The automated backup scheduler is an **in-process APScheduler job**, so:
+Automated backups run **inside Supabase** (pg_cron), not in the web process.
+Migration `011` creates a `cb-automated-backup` job that fires every minute;
+the job reads the saved schedule from `system_settings` and only snapshots
+when one is due (interval / daily / disabled — all still controlled from the
+Backup & Recovery page in the app).
 
-- The web service must be **always-on**. Render's free tier sleeps after
-  ~15 min idle and the scheduler pauses while asleep — upgrade to the
-  always-on add-on (or set it via Render cron) if 24/7 backups matter.
-- **Do not scale to more than one web instance** — the `Procfile` pins
-  `--workers 1` so the scheduler starts exactly once. Multi-instance would
-  run duplicate backups.
+This means:
+- Backups keep running even when the web service is asleep or scaled to zero.
+- **Always-on is no longer required for backups** (free-tier sleep is fine).
+- Multiple web instances are safe — there is no in-process scheduler to
+  duplicate. (`--workers 1` remains a fine default.)
+- The web service only calls `ensure_backup_cron()` once at boot to make sure
+  the pg_cron job exists.
 
 ## 3. Local testing of this build
 
