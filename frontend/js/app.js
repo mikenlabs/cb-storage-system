@@ -712,7 +712,45 @@ async function loadBackupSchedule() {
     } catch (_) {
         el.textContent = 'Automated backup: status unavailable';
     }
+
+    const rel = $('backup-retention-info');
+    if (rel) {
+        try {
+            const r = await apiFetch('/backup/retention');
+            $('retention-max').value = r.max_backups ?? 10;
+            updateRetentionInfo(r);
+        } catch (_) {
+            rel.textContent = 'Retention: status unavailable';
+        }
+    }
 }
+
+function updateRetentionInfo(r) {
+    const el = $('backup-retention-info');
+    if (el) {
+        el.innerHTML = `Keeping the newest <strong>${r.max_backups}</strong> backup(s); older ones are deleted automatically.`;
+    }
+}
+
+$('save-retention-btn').addEventListener('click', async () => {
+    const btn = $('save-retention-btn');
+    const max_backups = parseInt($('retention-max').value, 10);
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    try {
+        const r = await apiFetch('/backup/retention', {
+            method: 'PUT',
+            body: JSON.stringify({ max_backups }),
+        });
+        updateRetentionInfo(r);
+        showAlert({ title: 'Retention saved', message: `Keeping the newest ${r.max_backups} backup(s). Older backups were pruned.` });
+    } catch (err) {
+        showAlert({ title: 'Save failed', message: err.message });
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+    }
+});
 
 $('schedule-mode').addEventListener('change', toggleScheduleGroups);
 

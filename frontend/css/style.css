@@ -1005,7 +1005,8 @@ body {
 }
 
 .schedule-interval-group,
-.schedule-daily-group {
+.schedule-daily-group,
+.schedule-retention-group {
     display: flex;
     align-items: center;
     gap: 8px;

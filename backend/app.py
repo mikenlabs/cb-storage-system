@@ -548,6 +548,11 @@ def perform_backup(backup_type, triggered_by):
         "details": {"type": backup_type, "file_count": len(files.data), "total_size": total_size},
     }).execute()
 
+    try:
+        service_supabase.rpc("run_backup_retention").execute()
+    except Exception as e:
+        print(f"[BACKUP RETENTION ERROR] {e}")
+
     return log_entry.data[0]
 
 
@@ -672,6 +677,45 @@ def update_backup_schedule():
             "error": f"Could not save schedule: {e}. "
             "Check that migration 008 (system_settings table) has been applied."
         }), 500
+
+    return jsonify(settings)
+
+
+@app.route("/api/backup/retention", methods=["GET"])
+def backup_retention_get():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    if not is_admin(user):
+        return jsonify({"error": "Admin access required"}), 403
+    return jsonify(get_retention_settings())
+
+
+@app.route("/api/backup/retention", methods=["PUT"])
+def backup_retention_update():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    if not is_admin(user):
+        return jsonify({"error": "Admin access required"}), 403
+
+    data = request.get_json() or {}
+    try:
+        max_backups = int(data.get("max_backups", 10))
+    except (TypeError, ValueError):
+        max_backups = 10
+    settings = {"max_backups": max(1, min(1000, max_backups))}
+
+    try:
+        save_retention_settings(settings)
+    except Exception as e:
+        print(f"[RETENTION SAVE ERROR] {e}")
+        return jsonify({"error": f"Could not save retention: {e}"}), 500
+
+    try:
+        service_supabase.rpc("run_backup_retention").execute()
+    except Exception as e:
+        print(f"[RETENTION RUN ERROR] {e}")
 
     return jsonify(settings)
 
@@ -908,6 +952,28 @@ def get_schedule_settings():
 def save_schedule_settings(settings):
     service_supabase.table("system_settings").upsert({
         "key": "backup_schedule",
+        "value": settings,
+    }).execute()
+
+
+def get_retention_settings():
+    """Return the saved backup retention limit, defaulting to 10."""
+    try:
+        row = service_supabase.table("system_settings").select("value").eq(
+            "key", "backup_retention"
+        ).maybe_single().execute()
+        if row.data and row.data.get("value"):
+            value = row.data["value"]
+            if isinstance(value, dict) and value.get("max_backups"):
+                return {"max_backups": max(1, min(1000, int(value["max_backups"])))}
+    except Exception as e:
+        print(f"[RETENTION READ ERROR] {e}")
+    return {"max_backups": 10}
+
+
+def save_retention_settings(settings):
+    service_supabase.table("system_settings").upsert({
+        "key": "backup_retention",
         "value": settings,
     }).execute()
 
